@@ -157,6 +157,51 @@ class WazuhClient:
             timestamp_end=params.get("timestamp_end"),
         )
 
+    async def get_alerts_aggregated(self, time_range, cursor=None):
+        composite = {
+            "size": 500,  # página segura
+            "sources": [
+                {"rule_id": {"terms": {"field": "rule.id"}}},
+                {"rule_level": {"terms": {"field": "rule.level"}}},
+                {"agent_name": {"terms": {"field": "agent.name.keyword"}}}
+            ]
+        }
+    
+        if cursor:
+            composite["after"] = cursor
+    
+        query = {
+            "size": 0,
+            "track_total_hits": True,
+            "query": {
+                "range": {
+                    "timestamp": {
+                        "gte": time_range["gte"],
+                        "lt": time_range["lt"]
+                    }
+                }
+            },
+            "aggs": {
+                "aggregated": {
+                    "composite": composite
+                }
+            }
+        }
+    
+        response = await self.indexer.search(
+            index="wazuh-alerts-*",
+            body=query
+        )
+    
+        buckets = response["aggregations"]["aggregated"]["buckets"]
+        after_key = response["aggregations"]["aggregated"].get("after_key")
+    
+        return {
+            "total": response["hits"]["total"]["value"],
+            "buckets": buckets,
+            "next_cursor": after_key
+        }
+
     async def get_agents(self, agent_id=None, status=None, limit=100, **params) -> Dict[str, Any]:
         """Get agents from Wazuh."""
         clean_params: Dict[str, Any] = {}

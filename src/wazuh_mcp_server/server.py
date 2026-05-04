@@ -1289,6 +1289,23 @@ async def handle_tools_list(params: Dict[str, Any], session: MCPSession) -> Dict
     Filters tools based on session token scopes."""
     _cursor = params.get("cursor")  # Reserved for future pagination
     tools = [
+        {
+            "name": "get_alerts_aggregated_last_day",
+            "description": "Retorna agregações de alerts do último dia por regra, nível e agente",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "gte": {
+                        "type": "string",
+                        "description": "Data inicial (ex: now-1d/d)"
+                    },
+                    "lt": {
+                        "type": "string",
+                        "description": "Data final (ex: now/d)"
+                    }
+                }
+            }
+        },
         # Alert Management Tools (4 tools)
         {
             "name": "get_wazuh_alerts",
@@ -1957,6 +1974,17 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
             result = _add_truncation_warning(result, limit)
             _success = True
             return _tool_result(f"Wazuh Alerts:\n{json.dumps(result, indent=2 if not compact else None, default=str)}")
+        
+        elif tool_name == "get_wazuh_alerts_aggregated":
+            time_range = validate_time_range(arguments.get("time_range"))
+
+            result = await wazuh_client.get_alerts_aggregated(
+                time_range=time_range,
+                cursor=cursor
+            )
+
+            _success = True
+            return _tool_result(f"Alerts Aggregated:\n{json.dumps(result, indent=2, default=str)}")
 
         elif tool_name == "get_wazuh_alert_summary":
             time_range = validate_time_range(arguments.get("time_range"))
