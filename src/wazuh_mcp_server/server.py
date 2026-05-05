@@ -1278,18 +1278,18 @@ audit_logger = logging.getLogger("wazuh_mcp_server.audit")
 
 async def run_alerts_analysis_24h(job_id):
     try:
-        aggregated = {
-            "rules": {},
-            "levels": {},
-            "agents": {}
-        }
-
         total = 0
+
+        # buffer para enviar ao Claude
+        buffer = []
+        BUFFER_SIZE = 2000  # ajuste conforme limite de token
+
+        analyses = []
 
         async for batch in wazuh_client.scroll_generator(
             index="wazuh-alerts-*",
             query={
-                "bool" : {
+                "bool": {
                     "filter": [
                         {
                             "range": {
@@ -1300,32 +1300,43 @@ async def run_alerts_analysis_24h(job_id):
                             }
                         }
                     ]
-                    }
+                }
             },
-            batch_size=10000
+            batch_size=10000  # pode reduzir pra aliviar memória
         ):
             for doc in batch:
                 src = doc.get("_source", {})
 
-                rule = src.get("rule", {}).get("id")
-                level = src.get("rule", {}).get("level")
-                agent = src.get("agent", {}).get("name")
+                # 🔥 extrai só o essencial (NÃO mande o doc inteiro!)
+                event = {
+                    "timestamp": src.get("@timestamp"),
+                    "rule_id": src.get("rule", {}).get("id"),
+                    "rule_desc": src.get("rule", {}).get("description"),
+                    "level": src.get("rule", {}).get("level"),
+                    "agent": src.get("agent", {}).get("name"),
+                }
 
-                if rule:
-                    aggregated["rules"][rule] = aggregated["rules"].get(rule, 0) + 1
-                if level:
-                    aggregated["levels"][level] = aggregated["levels"].get(level, 0) + 1
-                if agent:
-                    aggregated["agents"][agent] = aggregated["agents"].get(agent, 0) + 1
+                buffer.append(event)
+
+                # 🚀 quando enche o buffer → manda pro Claude
+                if len(buffer) >= BUFFER_SIZE:
+                    analysis = await analyze_with_claude(buffer)
+                    analyses.append(analysis)
+                    buffer.clear()
 
             total += len(batch)
-
             JOBS[job_id]["progress"] = total
 
-            await asyncio.sleep(0.05)
+        # processa resto do buffer
+        if buffer:
+            analysis = await analyze_with_claude(buffer)
+            analyses.append(analysis)
+
+        # 🔥 análise final (resumo dos resumos)
+        final_analysis = await summarize_analyses(analyses)
 
         JOBS[job_id]["status"] = "done"
-        JOBS[job_id]["result"] = aggregated
+        JOBS[job_id]["result"] = final_analysis
 
     except Exception as e:
         JOBS[job_id]["status"] = "error"
