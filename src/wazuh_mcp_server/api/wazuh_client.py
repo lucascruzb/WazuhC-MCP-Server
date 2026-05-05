@@ -157,7 +157,7 @@ class WazuhClient:
             timestamp_end=params.get("timestamp_end"),
         )
 
-    async def get_alerts_aggregated(self, time_range, cursor=None):
+    async def get_alerts_aggregated(self, time_range):
         composite = {
             "size": 500,  # página segura
             "sources": [
@@ -166,10 +166,7 @@ class WazuhClient:
                 {"agent_name": {"terms": {"field": "agent.name.keyword"}}}
             ]
         }
-    
-        if cursor:
-            composite["after"] = cursor
-    
+
         query = {
             "size": 0,
             "track_total_hits": True,
@@ -187,15 +184,15 @@ class WazuhClient:
                 }
             }
         }
-    
+
         response = await self.indexer.search(
             index="wazuh-alerts-*",
             body=query
         )
-    
+
         buckets = response["aggregations"]["aggregated"]["buckets"]
         after_key = response["aggregations"]["aggregated"].get("after_key")
-    
+
         return {
             "total": response["hits"]["total"]["value"],
             "buckets": buckets,

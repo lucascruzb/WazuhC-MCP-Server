@@ -1980,7 +1980,6 @@ async def handle_tools_call(params: Dict[str, Any], session: MCPSession) -> Dict
 
             result = await wazuh_client.get_alerts_aggregated(
                 time_range=time_range,
-                cursor=cursor
             )
 
             _success = True
