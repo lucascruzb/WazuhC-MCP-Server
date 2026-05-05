@@ -175,9 +175,15 @@ class WazuhClient:
             "track_total_hits": True,
             "query": query,
             "aggs": { 
-                {"rule_id": {"terms": {"field": "rule.id"}}},
-                {"rule_level": {"terms": {"field": "rule.level"}}},
-                {"agent_name": {"terms": {"field": "agent.name.keyword"}}}
+                "rule_id": {
+                    "terms": {"field": "rule.id"}
+                    },
+                "rule_level": {
+                    "terms": {"field": "rule.level"}
+                    },
+                "agent_name": {
+                    "terms": {"field": "agent.name.keyword"}
+                    }
             }
             }
         )
