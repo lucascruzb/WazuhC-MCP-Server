@@ -185,6 +185,32 @@ class WazuhIndexerClient:
             # Let timeout errors propagate for retry
             raise
 
+    async def _execute_search_dsl(
+        self,
+        index: str,
+        body: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute full Elasticsearch DSL query (supports aggs, size, etc)."""
+        await self._ensure_initialized()
+    
+        url = f"{self.base_url}/{index}/_search"
+    
+        try:
+            response = await self.client.post(
+                url,
+                json=body,
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+    
+            return response.json()
+    
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Indexer search failed: {e.response.status_code} - {e.response.text}")
+            if e.response.status_code >= 500:
+                raise
+            raise ValueError(f"Indexer query failed: {e.response.status_code}")
+    
     async def get_alerts(
         self,
         limit: int = 100,

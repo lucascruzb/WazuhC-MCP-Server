@@ -168,23 +168,17 @@ class WazuhClient:
                 }
         }
 
-        response = await self._indexer_client._execute_search(
+        response = await self._indexer_client._execute_search_dsl(
             index="wazuh-alerts-*",
-            query={
-            "size": 0,
-            "track_total_hits": True,
-            "query": query,
-            "aggs": { 
-                "rule_id": {
-                    "terms": {"field": "rule.id"}
-                    },
-                "rule_level": {
-                    "terms": {"field": "rule.level"}
-                    },
-                "agent_name": {
-                    "terms": {"field": "agent.name.keyword"}
-                    }
-            }
+            body={
+                "size": 0,
+                "track_total_hits": True,
+                "query": query,
+                "aggs": {
+                    "rule_id": {"terms": {"field": "rule.id"}},
+                    "rule_level": {"terms": {"field": "rule.level"}},
+                    "agent_name": {"terms": {"field": "agent.name.keyword"}}
+                }
             }
         )
 
