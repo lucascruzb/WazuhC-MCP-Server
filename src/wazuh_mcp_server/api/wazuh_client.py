@@ -207,7 +207,7 @@ class WazuhClient:
         batch_size=10000,
         scroll="5m"
     ):
-        data = await self.indexer.start_scroll(
+        data = await self._indexer_client.start_scroll(
             index=index,
             query=query,
             batch_size=batch_size,
@@ -221,7 +221,7 @@ class WazuhClient:
             while hits:
                 yield hits
 
-                data = await self.indexer.continue_scroll(
+                data = await self._indexer_client.continue_scroll(
                     scroll_id=scroll_id,
                     scroll=scroll
                 )
@@ -231,7 +231,7 @@ class WazuhClient:
 
         finally:
             if scroll_id:
-                await self.indexer.clear_scroll(scroll_id)
+                await self._indexer_client.clear_scroll(scroll_id)
 
     async def get_agents(self, agent_id=None, status=None, limit=100, **params) -> Dict[str, Any]:
         """Get agents from Wazuh."""
