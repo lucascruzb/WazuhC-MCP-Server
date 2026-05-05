@@ -158,14 +158,6 @@ class WazuhClient:
         )
 
     async def get_alerts_aggregated(self, time_range):
-        composite = {
-            "size": 500,  # página segura
-            "sources": [
-                {"rule_id": {"terms": {"field": "rule.id"}}},
-                {"rule_level": {"terms": {"field": "rule.level"}}},
-                {"agent_name": {"terms": {"field": "agent.name.keyword"}}}
-            ]
-        }
 
         query = {
                 "range": {
@@ -176,27 +168,35 @@ class WazuhClient:
                 }
         }
 
-        response = await self._indexer_client._search(
-            "wazuh-alerts-*",
-            query,
-            0
+        response = await self._indexer_client._execute_search(
+            index="wazuh-alerts-*",
+            query={
+            "size": 0,
+            "track_total_hits": True,
+            "query": query,
+            "aggs": { 
+                {"rule_id": {"terms": {"field": "rule.id"}}},
+                {"rule_level": {"terms": {"field": "rule.level"}}},
+                {"agent_name": {"terms": {"field": "agent.name.keyword"}}}
+            }
+            }
         )
 
         aggregations = response.get("aggregations", {})
         print(json.dumps(response, indent=2))
         print(json.dumps(aggregations, indent=2))
 
-        porNivel = aggregations.get("por_nivel", {}).get("buckets",[])
-        porAgente = aggregations.get("por_agente").get("buckets",[])
-        porRegra = aggregations.get("por_regra", {}).get("buckets",[])
+        rule_id = aggregations.get("rule_id", {}).get("buckets",[])
+        rule_level = aggregations.get("rule_level").get("buckets",[])
+        agent_name = aggregations.get("agent_name", {}).get("buckets",[])
 
 
         return {
             "total": response.get("hits", {}).get("total", {}).get("value", 0),
             "aggregations": {
-                "por_nivel": porNivel,
-                "por_agente": porAgente,
-                "por_regra": porRegra
+                "rule_id": rule_id,
+                "rule_level": rule_level,
+                "agent_name": agent_name
             },
         }
 
