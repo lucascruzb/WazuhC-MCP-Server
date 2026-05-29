@@ -1307,7 +1307,6 @@ async def run_alerts_analysis_24h(job_id):
             for doc in batch:
                 src = doc.get("_source", {})
 
-                # 🔥 extrai só o essencial (NÃO mande o doc inteiro!)
                 event = {
                     "timestamp": src.get("@timestamp"),
                     "rule_id": src.get("rule", {}).get("id"),
@@ -1318,7 +1317,6 @@ async def run_alerts_analysis_24h(job_id):
 
                 buffer.append(event)
 
-                # 🚀 quando enche o buffer → manda pro Claude
                 if len(buffer) >= BUFFER_SIZE:
                     analysis = await analyze_with_claude(buffer)
                     analyses.append(analysis)
@@ -1327,12 +1325,10 @@ async def run_alerts_analysis_24h(job_id):
             total += len(batch)
             JOBS[job_id]["progress"] = total
 
-        # processa resto do buffer
         if buffer:
             analysis = await analyze_with_claude(buffer)
             analyses.append(analysis)
 
-        # 🔥 análise final (resumo dos resumos)
         final_analysis = await summarize_analyses(analyses)
 
         JOBS[job_id]["status"] = "done"

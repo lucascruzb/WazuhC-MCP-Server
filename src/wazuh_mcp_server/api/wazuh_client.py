@@ -174,9 +174,9 @@ class WazuhClient:
 
                 },
                 "aggs": {
-                    "rule_id": {"terms": {"field": "rule.id"}},
-                    "rule_level": {"terms": {"field": "rule.level"}},
-                    "agent_name": {"terms": {"field": "agent.name.keyword"}}
+                    "rule_id": {"terms": {"field": "rule.id","size": 100}},
+                    "rule_level": {"terms": {"field": "rule.level","size": 20}},
+                    "agent_name": {"terms": {"field": "agent.name.keyword","size": 1000}}
                 }
             }
         )
